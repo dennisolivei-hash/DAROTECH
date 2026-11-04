@@ -1,0 +1,504 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>DARO Games — Jogos da DARO Tech</title>
+<meta name="description" content="DARO Games, a divisão de jogos da DARO Tech. Jogue Jornada do Cavaleiro, uma aventura medieval em pixel art que roda direto no navegador, no computador ou no celular.">
+<meta property="og:title" content="DARO Games — Jornada do Cavaleiro">
+<meta property="og:description" content="Aventura medieval em pixel art: 4 fases, 2 chefes, loja de melhorias e placar. Jogue grátis no navegador.">
+<meta property="og:image" content="../images/jornada-capa.jpg">
+<meta property="og:type" content="website">
+<link rel="icon" href="../images/favicon.png">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --navy-950:#000000;
+    --navy-900:#0a0a0a;
+    --navy-800:#131313;
+    --navy-700:#1f1f1f;
+    --navy-600:#2b2b2b;
+    --cyan-400:#4ee8ff;
+    --cyan-500:#1ec8e8;
+    --cyan-glow:rgba(78,232,255,0.35);
+    --coral-500:#ff6a55;
+    --coral-600:#ef5443;
+    --gold-400:#f5c542;
+    --gold-glow:rgba(245,197,66,0.35);
+    --text-hi:#f5f5f5;
+    --text-mid:#a8a8a8;
+    --text-dim:#6e6e6e;
+  }
+
+  *{box-sizing:border-box; margin:0; padding:0;}
+  html{scroll-behavior:smooth;}
+  body{ font-family:'Space Grotesk', system-ui, sans-serif; background:var(--navy-950); color:var(--text-hi); overflow-x:hidden; }
+  .mono{ font-family:'JetBrains Mono', monospace; }
+  a{ color:inherit; }
+  .container{ max-width:1180px; margin:0 auto; padding:0 28px; }
+  img{ display:block; max-width:100%; }
+
+  /* ---------- fundo ---------- */
+  .bg-grid{
+    position:fixed; inset:0; z-index:0; pointer-events:none;
+    background-image:
+      linear-gradient(rgba(245,197,66,0.04) 1px, transparent 1px),
+      linear-gradient(90deg, rgba(78,232,255,0.04) 1px, transparent 1px);
+    background-size:44px 44px;
+    -webkit-mask-image:radial-gradient(ellipse 80% 60% at 50% 0%, #000 0%, transparent 70%);
+            mask-image:radial-gradient(ellipse 80% 60% at 50% 0%, #000 0%, transparent 70%);
+  }
+  /* faíscas em pixel subindo (referência às brasas do jogo) */
+  .ember-field{ position:absolute; inset:0; overflow:hidden; pointer-events:none; z-index:1; }
+  .ember{
+    position:absolute; bottom:-20px; opacity:0;
+    box-shadow:0 0 8px var(--gold-glow);
+    animation:subir linear infinite;
+  }
+  @keyframes subir{
+    0%{ transform:translateY(0); opacity:0; }
+    10%{ opacity:.8; }
+    80%{ opacity:.35; }
+    100%{ transform:translateY(-620px) translateX(20px); opacity:0; }
+  }
+  @media (prefers-reduced-motion:reduce){
+    .ember{ animation:none; display:none; }
+    html{ scroll-behavior:auto; }
+  }
+
+  /* ---------- nav ---------- */
+  .nav{ position:sticky; top:0; z-index:20; background:rgba(5,9,18,0.72); backdrop-filter:blur(10px); border-bottom:1px solid var(--navy-700); }
+  .nav-inner{ display:flex; align-items:center; justify-content:space-between; padding:14px 0; }
+  .brand{ display:flex; align-items:center; gap:10px; text-decoration:none; }
+  .brand img{ width:30px; height:auto; }
+  .brand-word{ font-weight:700; font-size:16px; letter-spacing:.3px; }
+  .brand-word .sep{ color:var(--text-dim); font-weight:500; margin:0 4px; }
+  .brand-word .games{ color:var(--gold-400); }
+  .nav-links{ display:flex; align-items:center; gap:30px; }
+  .nav-links a{ text-decoration:none; color:var(--text-mid); font-size:13px; letter-spacing:.3px; transition:color .15s; }
+  .nav-links a:hover, .nav-links a.active{ color:var(--cyan-400); }
+  .nav-cta{
+    background:var(--coral-500); color:#fff !important; text-decoration:none;
+    font-weight:700; font-size:12.5px; letter-spacing:.4px; padding:9px 18px;
+    clip-path:polygon(8px 0,100% 0,100% calc(100% - 8px),calc(100% - 8px) 100%,0 100%,0 8px);
+    transition:filter .15s;
+  }
+  .nav-cta:hover{ filter:brightness(1.1); }
+  @media (max-width:760px){ .nav-links a:not(.nav-cta){ display:none; } }
+
+  /* ---------- hero ---------- */
+  .hero{ position:relative; padding:130px 0 100px; text-align:center; min-height:88vh; display:flex; align-items:center; justify-content:center; overflow:hidden; }
+  .hero-bg{
+    position:absolute; inset:0; z-index:0;
+    background-image:
+      radial-gradient(ellipse 70% 60% at 50% 35%, rgba(0,0,0,0.55) 0%, rgba(0,0,0,0.9) 60%, #000 100%),
+      url('../images/jornada-dragao.jpg');
+    background-size:cover; background-position:center 40%; background-repeat:no-repeat;
+    image-rendering:pixelated;
+  }
+  .hero-inner{ position:relative; z-index:2; width:100%; }
+  .eyebrow{
+    display:inline-flex; align-items:center; gap:8px;
+    font-size:11.5px; letter-spacing:2px; color:var(--gold-400);
+    border:1px solid var(--navy-600); padding:6px 14px; margin-bottom:30px;
+    clip-path:polygon(6px 0,100% 0,100% calc(100% - 6px),calc(100% - 6px) 100%,0 100%,0 6px);
+    background:rgba(0,0,0,0.5);
+  }
+  .eyebrow .dot{ width:5px; height:5px; border-radius:50%; background:var(--gold-400); box-shadow:0 0 6px var(--gold-400); }
+  .hero h1{ font-size:clamp(42px, 8vw, 84px); font-weight:700; letter-spacing:-1px; line-height:1.02; }
+  .hero h1 .accent{ background:linear-gradient(90deg, var(--gold-400), var(--coral-500)); -webkit-background-clip:text; background-clip:text; color:transparent; }
+  .tagline{ margin:20px auto 0; max-width:640px; font-size:clamp(16px,2.4vw,20px); color:var(--text-mid); font-weight:500; }
+  .tagline strong{ color:var(--text-hi); font-weight:600; }
+  .hero-sub{ margin:14px auto 0; max-width:560px; font-size:14.5px; color:var(--text-dim); line-height:1.6; }
+  .hero-ctas{ display:flex; gap:14px; justify-content:center; margin-top:40px; flex-wrap:wrap; }
+
+  .btn{
+    text-decoration:none; font-weight:700; font-size:14px; letter-spacing:.3px;
+    padding:14px 30px; display:inline-flex; align-items:center; gap:9px;
+    clip-path:polygon(10px 0,100% 0,100% calc(100% - 10px),calc(100% - 10px) 100%,0 100%,0 10px);
+    transition:filter .15s, transform .1s; border:none; cursor:pointer; font-family:inherit;
+  }
+  .btn:active{ transform:translateY(1px); }
+  .btn-primary{ background:linear-gradient(90deg, var(--coral-500), var(--coral-600)); color:#fff; box-shadow:0 10px 28px -10px rgba(255,106,85,0.5); }
+  .btn-primary:hover{ filter:brightness(1.08); }
+  .btn-ghost{ background:transparent; border:1px solid var(--navy-600); color:var(--text-hi); }
+  .btn-ghost:hover{ border-color:var(--cyan-500); color:var(--cyan-400); }
+
+  .stat-strip{ display:flex; justify-content:center; gap:56px; margin-top:64px; flex-wrap:wrap; }
+  .stat-strip div{ text-align:center; }
+  .stat-strip .num{ font-size:22px; font-weight:700; color:var(--gold-400); }
+  .stat-strip .lbl{ font-size:11px; color:var(--text-dim); letter-spacing:.6px; margin-top:4px; }
+
+  /* ---------- seções ---------- */
+  section.block{ position:relative; padding:90px 0; border-top:1px solid var(--navy-700); }
+  .sec-eyebrow{ font-size:12px; letter-spacing:2.5px; color:var(--text-dim); margin-bottom:14px; }
+  .sec-eyebrow .n{ color:var(--cyan-400); }
+  .sec-title{ font-size:clamp(26px,4vw,38px); font-weight:700; letter-spacing:-.5px; max-width:680px; }
+  .sec-body{ margin-top:18px; max-width:620px; color:var(--text-mid); font-size:15px; line-height:1.7; }
+
+  /* ---------- jogo em destaque ---------- */
+  .game-feature{
+    display:grid; grid-template-columns:1.15fr 1fr; gap:0; margin-top:48px;
+    background:var(--navy-900); border:1px solid var(--navy-700);
+    clip-path:polygon(20px 0,100% 0,100% calc(100% - 20px),calc(100% - 20px) 100%,0 100%,0 20px);
+    transition:border-color .2s;
+  }
+  .game-feature:hover{ border-color:var(--gold-400); }
+  .game-shot{ position:relative; background:#000; min-height:280px; overflow:hidden; }
+  .game-shot img{ width:100%; height:100%; object-fit:cover; image-rendering:pixelated; transition:transform .5s; }
+  .game-feature:hover .game-shot img{ transform:scale(1.03); }
+  .game-shot .play-badge{
+    position:absolute; left:18px; bottom:18px; display:inline-flex; align-items:center; gap:8px;
+    background:rgba(0,0,0,.75); border:1px solid var(--gold-400); color:var(--gold-400);
+    font-size:11px; letter-spacing:1.5px; padding:7px 12px;
+    clip-path:polygon(6px 0,100% 0,100% calc(100% - 6px),calc(100% - 6px) 100%,0 100%,0 6px);
+  }
+  .game-info{ padding:36px 34px; display:flex; flex-direction:column; }
+  .product-status{ display:inline-flex; align-items:center; gap:7px; font-size:10.5px; letter-spacing:1.3px; color:var(--gold-400); margin-bottom:18px; }
+  .product-status .dot{ width:5px; height:5px; border-radius:50%; background:var(--gold-400); box-shadow:0 0 6px var(--gold-400); }
+  .game-info h3{ font-size:30px; font-weight:700; margin-bottom:4px; letter-spacing:-.3px; }
+  .game-info .sub{ font-size:13.5px; color:var(--coral-500); font-weight:600; margin-bottom:16px; }
+  .game-info p{ font-size:14.5px; color:var(--text-mid); line-height:1.7; }
+  .feature-pills{ display:flex; flex-wrap:wrap; gap:7px; margin:20px 0 26px; }
+  .feature-pills span{
+    font-size:11px; color:var(--text-dim); border:1px solid var(--navy-600); padding:4px 10px;
+    clip-path:polygon(4px 0,100% 0,100% calc(100% - 4px),calc(100% - 4px) 100%,0 100%,0 4px);
+  }
+  .game-actions{ display:flex; gap:12px; flex-wrap:wrap; margin-top:auto; }
+  .game-actions .btn{ padding:12px 24px; font-size:13.5px; }
+  .platforms{ margin-top:16px; font-size:11.5px; color:var(--text-dim); letter-spacing:.5px; }
+  @media (max-width:900px){ .game-feature{ grid-template-columns:1fr; } .game-shot{ aspect-ratio:16/9; min-height:0; } }
+
+  /* ---------- galeria ---------- */
+  .gallery{ display:grid; grid-template-columns:repeat(2, 1fr); gap:16px; margin-top:44px; }
+  .shot{
+    position:relative; background:var(--navy-900); border:1px solid var(--navy-700); cursor:zoom-in; overflow:hidden;
+    clip-path:polygon(12px 0,100% 0,100% calc(100% - 12px),calc(100% - 12px) 100%,0 100%,0 12px);
+    transition:border-color .2s, transform .2s; padding:0; text-align:left; color:inherit; font:inherit;
+  }
+  .shot:hover{ border-color:var(--cyan-500); transform:translateY(-3px); }
+  .shot img{ width:100%; aspect-ratio:16/9; object-fit:cover; image-rendering:pixelated; }
+  .shot figcaption{ padding:14px 16px; display:flex; justify-content:space-between; gap:10px; align-items:baseline; }
+  .shot .t{ font-size:14px; font-weight:700; }
+  .shot .d{ font-size:11px; color:var(--text-dim); letter-spacing:.8px; }
+  @media (max-width:700px){ .gallery{ grid-template-columns:1fr; } }
+
+  .lightbox{ position:fixed; inset:0; z-index:50; background:rgba(0,0,0,.92); display:none; align-items:center; justify-content:center; padding:24px; cursor:zoom-out; }
+  .lightbox.open{ display:flex; }
+  .lightbox img{ max-width:min(1200px, 100%); max-height:85vh; image-rendering:pixelated; border:1px solid var(--navy-600); }
+  .lightbox .cap{ position:absolute; bottom:22px; left:0; right:0; text-align:center; font-size:13px; color:var(--text-mid); }
+
+  /* ---------- como jogar ---------- */
+  .cap-grid{ display:grid; grid-template-columns:repeat(4, 1fr); gap:1px; background:var(--navy-700); border:1px solid var(--navy-700); margin-top:48px; }
+  .cap-item{ background:var(--navy-950); padding:30px 24px; }
+  .cap-num{ font-size:11px; color:var(--text-dim); margin-bottom:14px; }
+  .cap-item h4{ font-size:15px; font-weight:700; letter-spacing:.3px; margin-bottom:12px; }
+  .keys{ display:flex; flex-wrap:wrap; gap:6px; margin-bottom:12px; }
+  .key{
+    font-family:'JetBrains Mono', monospace; font-size:12px; color:var(--text-hi);
+    background:var(--navy-800); border:1px solid var(--navy-600); border-bottom-width:3px;
+    padding:4px 9px; border-radius:4px; min-width:28px; text-align:center;
+  }
+  .cap-item p{ font-size:13px; color:var(--text-mid); line-height:1.55; }
+  .cap-item p .m{ color:var(--cyan-400); }
+  .extra-keys{ margin-top:18px; font-size:13px; color:var(--text-dim); display:flex; gap:24px; flex-wrap:wrap; }
+  .extra-keys b{ color:var(--text-mid); font-weight:600; }
+  @media (max-width:900px){ .cap-grid{ grid-template-columns:1fr 1fr; } }
+  @media (max-width:560px){ .cap-grid{ grid-template-columns:1fr; } }
+
+  /* ---------- em breve ---------- */
+  .soon{
+    margin-top:44px; padding:40px 34px; position:relative; overflow:hidden;
+    background:repeating-linear-gradient(135deg, var(--navy-900) 0 18px, #0e0e0e 18px 36px);
+    border:1px dashed var(--navy-600);
+    clip-path:polygon(18px 0,100% 0,100% calc(100% - 18px),calc(100% - 18px) 100%,0 100%,0 18px);
+    display:flex; align-items:center; justify-content:space-between; gap:28px; flex-wrap:wrap;
+  }
+  .soon .q{ font-family:'JetBrains Mono', monospace; font-size:54px; font-weight:600; color:var(--navy-600); line-height:1; }
+  .soon h3{ font-size:22px; font-weight:700; margin-bottom:6px; }
+  .soon p{ font-size:14px; color:var(--text-mid); max-width:520px; line-height:1.6; }
+
+  /* ---------- cta final ---------- */
+  .final-cta{ text-align:center; padding:110px 0; position:relative; overflow:hidden; border-top:1px solid var(--navy-700); }
+  .final-cta h2{ font-size:clamp(28px,5vw,46px); font-weight:700; letter-spacing:-.5px; max-width:680px; margin:0 auto; position:relative; z-index:2; }
+  .final-cta p{ margin-top:16px; color:var(--text-mid); font-size:15px; position:relative; z-index:2; }
+  .final-cta .btn{ margin-top:34px; position:relative; z-index:2; }
+  .final-cta .eyebrow{ position:relative; z-index:2; }
+
+  /* ---------- rodapé ---------- */
+  footer{ border-top:1px solid var(--navy-700); padding:56px 0 34px; position:relative; z-index:2; }
+  .footer-top{ display:flex; justify-content:space-between; flex-wrap:wrap; gap:40px; }
+  .footer-brand{ display:flex; align-items:center; gap:10px; }
+  .footer-brand img{ width:26px; height:auto; }
+  .footer-brand span{ font-weight:700; font-size:15px; }
+  .footer-tag{ margin-top:10px; font-size:12.5px; color:var(--text-dim); max-width:240px; }
+  .footer-links{ display:flex; gap:64px; flex-wrap:wrap; }
+  .footer-col h5{ font-size:11px; letter-spacing:1.5px; color:var(--text-dim); margin-bottom:14px; }
+  .footer-col a{ display:block; text-decoration:none; color:var(--text-mid); font-size:13px; margin-bottom:9px; }
+  .footer-col a:hover{ color:var(--cyan-400); }
+  .footer-bottom{ margin-top:50px; padding-top:22px; border-top:1px solid var(--navy-700); display:flex; justify-content:space-between; flex-wrap:wrap; gap:10px; font-size:11.5px; color:var(--text-dim); }
+
+  :focus-visible{ outline:2px solid var(--cyan-400); outline-offset:2px; }
+  main, header, section, footer{ position:relative; }
+</style>
+</head>
+<body>
+
+<div class="bg-grid"></div>
+
+<header class="nav">
+  <div class="container nav-inner">
+    <a class="brand" href="../">
+      <img src="../images/logo-icon.png" alt="DARO Tech">
+      <span class="brand-word">DARO TECH<span class="sep">/</span><span class="games">GAMES</span></span>
+    </a>
+    <nav class="nav-links">
+      <a href="../">Início</a>
+      <a href="../#produtos">Produtos</a>
+      <a class="active" href="#jogos">Jogos</a>
+      <a href="../#contato">Contato</a>
+      <a class="nav-cta" href="https://jornadadocavaleiro.vercel.app/" target="_blank" rel="noopener">Jogar agora</a>
+    </nav>
+  </div>
+</header>
+
+<section class="hero" id="top">
+  <div class="hero-bg"></div>
+  <div class="ember-field" id="ember-field"></div>
+
+  <div class="container hero-inner">
+    <div class="eyebrow"><span class="dot"></span><span class="mono">A DIVISÃO DE JOGOS DA DARO TECH</span></div>
+
+    <h1>DARO <span class="accent">GAMES</span></h1>
+
+    <p class="tagline">Jogos independentes feitos no Brasil, <strong>que rodam direto no navegador.</strong></p>
+
+    <p class="hero-sub">Sem instalar nada: abra o link e jogue no computador ou no celular. Nosso primeiro lançamento já está no ar.</p>
+
+    <div class="hero-ctas">
+      <a class="btn btn-primary" href="https://jornadadocavaleiro.vercel.app/" target="_blank" rel="noopener">Jogar Jornada do Cavaleiro →</a>
+      <a class="btn btn-ghost" href="#jogos">Conhecer o jogo</a>
+    </div>
+
+    <div class="stat-strip">
+      <div><div class="num mono">1</div><div class="lbl">JOGO LANÇADO</div></div>
+      <div><div class="num mono">4</div><div class="lbl">FASES · 2 CHEFES</div></div>
+      <div><div class="num mono">PC + 📱</div><div class="lbl">COMPUTADOR E CELULAR</div></div>
+    </div>
+  </div>
+</section>
+
+<section class="block" id="jogos">
+  <div class="container">
+    <div class="sec-eyebrow mono"><span class="n">001</span> / LANÇAMENTO</div>
+    <h2 class="sec-title">Uma aventura medieval em pixel art.</h2>
+
+    <article class="game-feature">
+      <a class="game-shot" href="https://jornadadocavaleiro.vercel.app/" target="_blank" rel="noopener" aria-label="Jogar Jornada do Cavaleiro">
+        <img src="../images/jornada-capa.jpg" alt="Tela inicial de Jornada do Cavaleiro: o cavaleiro diante das muralhas de um castelo sob a lua vermelha" loading="lazy">
+        <span class="play-badge mono">▶ JOGAR NO NAVEGADOR</span>
+      </a>
+      <div class="game-info">
+        <div class="product-status mono"><span class="dot"></span>NOVO · VERSÃO 1.0 · GRÁTIS</div>
+        <h3>Jornada do Cavaleiro ⚔</h3>
+        <div class="sub">Plataforma 2D · Ação · Aventura medieval</div>
+        <p>
+          Trevas antigas se espalham pelo reino, e só um cavaleiro, com espada, escudo e um raro poder de fogo, ousa
+          enfrentá-las. Atravesse a Floresta Sombria, as Catacumbas Malditas, o Castelo das Trevas e o Pico Vulcânico,
+          derrote o Dragão das Trevas e o temível Rei Lich, fortaleça seu equipamento na Forja do Reino e grave seu nome
+          no placar dos heróis.
+        </p>
+        <div class="feature-pills">
+          <span>4 fases</span><span>2 chefes</span><span>Loja de melhorias</span><span>Checkpoints</span><span>Placar de recordes</span><span>Trilha sonora original</span>
+        </div>
+        <div class="game-actions">
+          <a class="btn btn-primary" href="https://jornadadocavaleiro.vercel.app/" target="_blank" rel="noopener">Jogar agora →</a>
+          <a class="btn btn-ghost" href="#galeria">Ver imagens</a>
+        </div>
+        <div class="platforms mono">COMPUTADOR (TECLADO) · CELULAR (TOQUE, NA HORIZONTAL)</div>
+      </div>
+    </article>
+  </div>
+</section>
+
+<section class="block" id="galeria">
+  <div class="container">
+    <div class="sec-eyebrow mono"><span class="n">002</span> / GALERIA</div>
+    <h2 class="sec-title">Quatro mundos, dois chefes, nenhum atalho.</h2>
+
+    <div class="gallery">
+      <figure class="shot" tabindex="0" data-full="../images/jornada-floresta.jpg">
+        <img src="../images/jornada-floresta.jpg" alt="Fase 1, Floresta Sombria: o cavaleiro enfrenta um goblin sob a lua cheia" loading="lazy">
+        <figcaption><span class="t">Floresta Sombria</span><span class="d mono">FASE 1</span></figcaption>
+      </figure>
+      <figure class="shot" tabindex="0" data-full="../images/jornada-dragao.jpg">
+        <img src="../images/jornada-dragao.jpg" alt="Fase 3, Castelo das Trevas: o cavaleiro lança uma bola de fogo contra o Dragão das Trevas" loading="lazy">
+        <figcaption><span class="t">Castelo das Trevas</span><span class="d mono">CHEFE · DRAGÃO</span></figcaption>
+      </figure>
+      <figure class="shot" tabindex="0" data-full="../images/jornada-lich.jpg">
+        <img src="../images/jornada-lich.jpg" alt="Fase 4, Pico Vulcânico: o Rei Lich flutua sobre a lava enquanto um arqueiro esqueleto ataca" loading="lazy">
+        <figcaption><span class="t">Pico Vulcânico</span><span class="d mono">CHEFE · REI LICH</span></figcaption>
+      </figure>
+      <figure class="shot" tabindex="0" data-full="../images/jornada-loja.jpg">
+        <img src="../images/jornada-loja.jpg" alt="Forja do Reino: loja de melhorias com coração extra, espada afiada, chama extra, fôlego mágico e escudo da vida" loading="lazy">
+        <figcaption><span class="t">Forja do Reino</span><span class="d mono">LOJA ENTRE FASES</span></figcaption>
+      </figure>
+    </div>
+  </div>
+</section>
+
+<section class="block" id="como-jogar">
+  <div class="container">
+    <div class="sec-eyebrow mono"><span class="n">003</span> / COMO JOGAR</div>
+    <h2 class="sec-title">Controles simples, desafio de verdade.</h2>
+    <p class="sec-body">No computador, use o teclado. No celular, deite a tela: o joystick fica à esquerda e os botões de ação à direita.</p>
+
+    <div class="cap-grid">
+      <div class="cap-item">
+        <div class="cap-num mono">01</div>
+        <h4>MOVER</h4>
+        <div class="keys"><span class="key">←</span><span class="key">→</span><span class="key">A</span><span class="key">D</span></div>
+        <p>Ande pelo cenário. <span class="m">No celular:</span> arraste o joystick.</p>
+      </div>
+      <div class="cap-item">
+        <div class="cap-num mono">02</div>
+        <h4>PULAR</h4>
+        <div class="keys"><span class="key">↑</span><span class="key">W</span><span class="key">Espaço</span></div>
+        <p>Aperte duas vezes para o pulo duplo. <span class="m">No celular:</span> botão ▲.</p>
+      </div>
+      <div class="cap-item">
+        <div class="cap-num mono">03</div>
+        <h4>ESPADA</h4>
+        <div class="keys"><span class="key">Z</span><span class="key">J</span></div>
+        <p>Golpe corpo a corpo, também agachado. <span class="m">No celular:</span> botão ⚔.</p>
+      </div>
+      <div class="cap-item">
+        <div class="cap-num mono">04</div>
+        <h4>PODER DE FOGO</h4>
+        <div class="keys"><span class="key">X</span><span class="key">K</span></div>
+        <p>Ataque à distância com cargas que recarregam. <span class="m">No celular:</span> botão 🔥.</p>
+      </div>
+    </div>
+    <div class="extra-keys mono">
+      <span><b>Abaixar:</b> ↓ / S</span><span><b>Pausar:</b> P / Esc</span><span><b>Som:</b> M</span>
+    </div>
+  </div>
+</section>
+
+<section class="block" id="em-breve">
+  <div class="container">
+    <div class="sec-eyebrow mono"><span class="n">004</span> / EM BREVE</div>
+    <h2 class="sec-title">A próxima aventura já está na forja.</h2>
+    <div class="soon">
+      <div>
+        <h3>Novo jogo em desenvolvimento</h3>
+        <p>A DARO Games está preparando o próximo lançamento. Enquanto isso, mostre do que você é capaz no placar de Jornada do Cavaleiro.</p>
+      </div>
+      <div class="q" aria-hidden="true">???</div>
+    </div>
+  </div>
+</section>
+
+<section class="final-cta">
+  <div class="ember-field" id="ember-field-2"></div>
+  <div class="container">
+    <div class="eyebrow" style="margin:0 auto 22px; width:fit-content;"><span class="dot"></span><span class="mono">PRONTO PARA A BATALHA?</span></div>
+    <h2>A jornada começa com um clique.</h2>
+    <p>Grátis, sem cadastro e sem instalar nada.</p>
+    <a class="btn btn-primary" href="https://jornadadocavaleiro.vercel.app/" target="_blank" rel="noopener">Jogar Jornada do Cavaleiro →</a>
+  </div>
+</section>
+
+<footer>
+  <div class="container">
+    <div class="footer-top">
+      <div>
+        <div class="footer-brand">
+          <img src="../images/logo-icon.png" alt="DARO Tech">
+          <span>DARO GAMES</span>
+        </div>
+        <p class="footer-tag">A divisão de jogos da DARO Tech. Jogos independentes feitos no Brasil.</p>
+      </div>
+
+      <div class="footer-links">
+        <div class="footer-col">
+          <h5 class="mono">DARO GAMES</h5>
+          <a href="#jogos">Jogos</a>
+          <a href="#galeria">Galeria</a>
+          <a href="#como-jogar">Como jogar</a>
+          <a href="https://jornadadocavaleiro.vercel.app/" target="_blank" rel="noopener">Jornada do Cavaleiro</a>
+        </div>
+        <div class="footer-col">
+          <h5 class="mono">DARO TECH</h5>
+          <a href="../">Início</a>
+          <a href="../#servicos">Serviços</a>
+          <a href="https://daro-desk.vercel.app/" target="_blank" rel="noopener">DARO Desk</a>
+          <a href="https://daro-connect.vercel.app/" target="_blank" rel="noopener">DARO Connect</a>
+        </div>
+        <div class="footer-col">
+          <h5 class="mono">CONTATO</h5>
+          <a href="https://wa.me/5511930837493" target="_blank" rel="noopener">(11) 93083-7493</a>
+          <a href="mailto:DAROTech.corp@gmail.com">DAROTech.corp@gmail.com</a>
+        </div>
+      </div>
+    </div>
+
+    <div class="footer-bottom">
+      <span>© 2026 DARO Games · uma divisão da DARO Tech · Todos os direitos reservados</span>
+      <span class="mono">JOGOS INDEPENDENTES</span>
+    </div>
+  </div>
+</footer>
+
+<div class="lightbox" id="lightbox" role="dialog" aria-modal="true" aria-label="Imagem ampliada">
+  <img id="lightbox-img" src="" alt="">
+  <div class="cap" id="lightbox-cap"></div>
+</div>
+
+<script>
+(function(){
+  "use strict";
+  var reduz = window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+
+  // faíscas em pixel (douradas e coral)
+  function brasas(id, total){
+    var campo = document.getElementById(id);
+    if(!campo || reduz) return;
+    var cores = ['#f5c542', '#ff6a55', '#ffd97a', '#4ee8ff'];
+    for(var i = 0; i < total; i++){
+      var e = document.createElement('div');
+      e.className = 'ember';
+      var t = 3 + Math.floor(Math.random() * 4);
+      e.style.width = t + 'px'; e.style.height = t + 'px';
+      var cor = cores[Math.random() < 0.85 ? Math.floor(Math.random() * 3) : 3];
+      e.style.background = cor;
+      e.style.left = (Math.random() * 100) + '%';
+      e.style.animationDuration = (5 + Math.random() * 6) + 's';
+      e.style.animationDelay = (Math.random() * 8) + 's';
+      campo.appendChild(e);
+    }
+  }
+  brasas('ember-field', 30);
+  brasas('ember-field-2', 18);
+
+  // galeria ampliada
+  var lb = document.getElementById('lightbox'), lbImg = document.getElementById('lightbox-img'), lbCap = document.getElementById('lightbox-cap');
+  function abrir(fig){
+    var img = fig.querySelector('img');
+    lbImg.src = fig.getAttribute('data-full'); lbImg.alt = img.alt;
+    lbCap.textContent = fig.querySelector('.t').textContent + ' · ' + fig.querySelector('.d').textContent;
+    lb.classList.add('open');
+  }
+  function fechar(){ lb.classList.remove('open'); lbImg.src = ''; }
+  document.querySelectorAll('.shot').forEach(function(fig){
+    fig.addEventListener('click', function(){ abrir(fig); });
+    fig.addEventListener('keydown', function(ev){ if(ev.key === 'Enter' || ev.key === ' '){ ev.preventDefault(); abrir(fig); } });
+  });
+  lb.addEventListener('click', fechar);
+  document.addEventListener('keydown', function(ev){ if(ev.key === 'Escape') fechar(); });
+})();
+</script>
+
+</body>
+</html>
