@@ -294,6 +294,10 @@
   }
 
   :focus-visible{ outline:2px solid var(--cyan-400); outline-offset:2px; }
+
+  .visit-count{ display:inline-flex; align-items:center; gap:6px; color:var(--text-dim); font-size:11.5px; }
+  .visit-count b{ color:var(--cyan-400); font-weight:600; }
+  .visit-count[hidden]{ display:none; }
 </style>
 </head>
 <body>
@@ -531,7 +535,7 @@
     </div>
 
     <div class="footer-bottom">
-      <span>© 2026 DARO Tech · Todos os direitos reservados</span>
+      <span>© 2026 DARO Tech · Todos os direitos reservados<span class="visit-count mono" id="visitas" hidden> · 👁 <b id="visitas-n">0</b> visitas</span></span>
       <span class="mono">SERVIÇOS DE TECNOLOGIA</span>
     </div>
   </div>
@@ -559,5 +563,17 @@
 })();
 </script>
 
+<script>
+// contador de visitas (conta 1 vez por sessão)
+(function(){
+  var ja=false;try{ja=sessionStorage.getItem('dt-visita')==='1'}catch(e){}
+  fetch('/api/visitas'+(ja?'?ver=1':'')).then(function(r){return r.ok?r.json():null}).then(function(j){
+    if(!j||!j.visitas)return;try{sessionStorage.setItem('dt-visita','1')}catch(e){}
+    document.getElementById('visitas-n').textContent=j.visitas.toLocaleString('pt-BR');
+    document.getElementById('visitas').hidden=false;
+  }).catch(function(){});
+})();
+</script>
+<script defer src="/_vercel/insights/script.js"></script>
 </body>
 </html>
