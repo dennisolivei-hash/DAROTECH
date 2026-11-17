@@ -217,8 +217,9 @@
   <!-- PISTA -->
   <div class="screen" id="sTrack">
     <h2 class="panel-title" id="trackTitle">ESCOLHA A PISTA!</h2>
-    <div class="modes" id="modes"><button data-m="race" data-key="m-race" class="on">🏁 CORRIDA</button><button data-m="gp" data-key="m-gp">🏆 CAMPEONATO</button><button data-m="battle" data-key="m-battle">🎈 BATALHA</button><button id="bNight" data-key="m-night">☀️ DIA</button></div>
+    <div class="modes" id="modes"><button data-m="race" data-key="m-race" class="on">🏁 CORRIDA</button><button id="bNight" data-key="m-night">☀️ DIA</button></div>
     <div class="tracks" id="tracks"></div>
+    <div class="caption" style="margin:.6em 0 0">🔒 DEMO: 2 pistas. A versão completa tem mais de 11 pistas, campeonato, batalha e pistas secretas!</div>
     <div class="row" style="margin-top:1em">
       <button class="btn alt" id="bBack">⬅ VOLTAR</button>
       <button class="btn" id="bRace">CORRER!</button>
@@ -393,8 +394,8 @@ const GHOST_DEF={id:'fantasma',name:'Fantasma',tag:'???',color:'#d9d6ff',vel:5,a
 THEMES.vulcao={noDots:true,id:'vulcao',name:'Vulcão de Lava',desc:'🔓 PISTA SECRETA 2! Rocha negra, rios de lava e um vulcão em erupção. Cuidado com as pedras de fogo!',
   sky:['#1a0505','#7f1d1d'],fog:'#3b0a0a',fogStart:.5,fogMax:.55,accent:'#f97316',
   col:{LIGHT:{road:'#2b2626',grass:'#1c1414',rumble:'#f97316',lane:'#facc15'},DARK:{road:'#252020',grass:'#211717',rumble:'#111',lane:null}}};
-const secret2Unlocked=()=>{try{return localStorage.getItem('fk-secret2')==='1'}catch(e){return false}};
-const secretUnlocked=()=>{try{return localStorage.getItem('fk-secret')==='1'}catch(e){return false}};
+const secret2Unlocked=()=>false; // DEMO
+const secretUnlocked=()=>false; // DEMO
 const CUPS=[{id:'familia',name:'Copa Família',icon:'👨‍👩‍👧‍👦',tracks:['sbc','chacara','laranjal','joinville']},
   {id:'brasil',name:'Copa Brasil',icon:'🇧🇷',tracks:['cidade','praia','cambe','castelo']},
   {id:'aventura',name:'Copa Aventura',icon:'🎢',tracks:['neon','geek','oeste','diversao']}];
@@ -417,7 +418,7 @@ function drawNight(){
   ctx.fillStyle='#fff';for(let i=0;i<40;i++){const x=U.mod(i*97.3-skyOffset*300,W),y=(i*53.7)%(H*.28);ctx.globalAlpha=.5+.5*Math.sin(raceTime*2+i);ctx.fillRect(x,y,2,2)}ctx.globalAlpha=1;
   ctx.fillStyle='#fff3b0';ctx.strokeStyle='#111';ctx.lineWidth=3;ctx.beginPath();ctx.arc(U.mod(W*.15-skyOffset*W*.3,W),H*.1,34,0,Math.PI*2);ctx.fill();ctx.stroke();
 }
-const TRACK_IDS=['cidade','praia','neon','geek','oeste','diversao','laranjal','joinville','sbc','cambe','chacara','castelo'];
+const TRACK_IDS=['cidade','praia']; // DEMO: só as duas pistas iniciais
 const LONG_TRACKS={geek:1,oeste:1,diversao:1};
 let trackId='cidade', theme=THEMES.cidade;
 const maps={}, mapURL={};
@@ -2723,7 +2724,7 @@ function buildTracks(){
     d.innerHTML=`<div class="tmap" style="background:linear-gradient(${t.sky[0]},${t.sky[1]})"><img alt="" src="${mapURL.arena}"></div><div class="tname">${t.name}</div><div class="tdesc">${t.desc}</div><div class="tlaps">3 BALÕES • ${Math.round(BATTLE_T/60*10)/10} MIN • ITENS EM DOBRO</div>`;
     d.onclick=()=>beep(700,.06);el.appendChild(d);return;
   }
-  el.style.gridTemplateColumns=secretUnlocked()||secret2Unlocked()?'repeat(7,1fr)':'';el.classList.toggle('many',secretUnlocked()||secret2Unlocked());
+  el.style.gridTemplateColumns='repeat(2,minmax(0,300px))';el.style.justifyContent='center';el.classList.toggle('many',secretUnlocked()||secret2Unlocked());
   if(!TRACK_IDS.includes(trackId)&&!(trackId==='secreta'&&secretUnlocked())&&!(trackId==='vulcao'&&secret2Unlocked()))trackId=lastRaceTrack;
   TRACK_IDS.forEach(id=>{const t=THEMES[id];
     const d=document.createElement('div');d.className='tcard'+(id===trackId?' sel':'');d.dataset.key='track-'+id;
