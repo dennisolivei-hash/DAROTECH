@@ -261,7 +261,7 @@
   </div>
   <button id="pauseBtn">❚❚ PAUSA</button>
   <button id="musicBtn" title="Liga/desliga só a música (tecla B)">🎵</button>
-  <button id="songBtn" title="Próxima música (tecla N)">⏭</button>
+  
   <button id="muteBtn" title="Liga/desliga todo o som (tecla M)">🔊</button>
   <div id="padToast"></div>
 </div></div>
@@ -950,7 +950,7 @@ function startRace(){
   views=[];curView=null;
   order.forEach((ri,g)=>{const hi=hum.indexOf(ri);const r=newRacer(RACERS[ri],hi>=0,g);racers.push(r);
     if(hi>=0){r.pidx=hi;r.label=numPlayers>1?'J'+(hi+1):'VOCÊ';r.view=newView(r);views[hi]=r.view}});
-  if(trackId==='vulcao'){const f=newRacer(GHOST_DEF,false,racers.length);f.skill=DIFF[diffLevel]*1.09;f.phantom=true;racers.push(f)}
+  chipStop();if(trackId==='vulcao'){const f=newRacer(GHOST_DEF,false,racers.length);f.skill=DIFF[diffLevel]*1.09;f.phantom=true;racers.push(f)}
   if(trackId==='secreta'){const f=newRacer(GHOST_DEF,false,racers.length);f.skill=DIFF[diffLevel]*1.06;f.phantom=true;racers.push(f)}
   loadView(views[0]);
   raceTime=0;countdown=3.99;finishTimer=0;endDeadline=0;paused=false;moments=[];fireworks=[];
@@ -2568,7 +2568,7 @@ let last=performance.now(),acc=0,lastCount=4;
 function frame(now){
   let dt=Math.min(.05,(now-last)/1000);last=now;
   pollPad();
-  updateEngine();
+  updateEngine();musicTick();
   if(state==='garage'&&Math.floor(now/50)%2===0)drawPreview(); // garante motor mudo fora da corrida (menu, pausa, resultado)
   ensureNav();
   if(state==='podium'){const gr=ctx.createLinearGradient(0,0,0,H);gr.addColorStop(0,'#1e1b4b');gr.addColorStop(1,'#7c3aed');ctx.fillStyle=gr;ctx.fillRect(0,0,W,H);ctx.fillStyle=PAT.sky;ctx.fillRect(0,0,W,H);
@@ -2772,11 +2772,73 @@ const SONGS=[];let songIdx=0;
 
 bgm.addEventListener('ended',()=>nextSong(true));
 function nextSong(auto){if(!SONGS.length){padToast('♪ Na versão da sua família, a trilha é escolhida por você!');return}songIdx=(songIdx+1)%SONGS.length;bgm.src=SONGS[songIdx].src;music(true);padToast('♪ '+SONGS[songIdx].t)}
-$('songBtn').onclick=()=>{audioInit();nextSong()};
+// ===== TRILHAS DAS PISTAS: arranjos originais em estilo 16-bit (sintetizados ao vivo) =====
+const CHIP_SONGS={
+ largada:{bpm:160,ch:['A m','A m','F M','F M','G M','G M','E M','E M'],
+  mel:'A4 . C5 . E5 . D5 C5 | D5 . E5 . - A4 C5 E5 | F5 . E5 . C5 . A4 . | C5 . D5 . E5 . F5 . | G5 . F5 . E5 . D5 . | B4 . D5 . G5 . . . | G#5 . . . F5 . E5 . | D5 . B4 . G#4 . E4 .'},
+ beiramar:{bpm:150,ch:['C M','C M','A m','A m','F M','F M','G M','G M'],
+  mel:'E5 . G5 . C6 . G5 . | E5 . D5 C5 D5 . E5 . | C5 . E5 . A5 . G5 . | E5 . . . C5 D5 E5 . | F5 . A5 . C6 . A5 . | G5 . F5 . E5 . D5 . | D5 . G5 . B5 . A5 . | G5 . . . F5 E5 D5 B4'},
+ neon:{bpm:170,ch:['E m','E m','C M','C M','D M','D M','B M','B M'],
+  mel:'E5 E5 - E5 G5 . B5 . | A5 G5 F#5 . E5 . B4 . | C5 C5 - C5 E5 . G5 . | F#5 E5 D5 . C5 . E5 . | D5 D5 - D5 F#5 . A5 . | B5 A5 G5 . F#5 . D5 . | D#5 . F#5 . B5 . . . | A5 . G5 . F#5 . D#5 .'},
+ poeira:{bpm:140,ch:['D m','D m','C M','C M','Bb M','Bb M','A M','A M'],
+  mel:'D5 . . F5 A5 . . . | G5 F5 E5 . D5 . A4 . | C5 . . E5 G5 . . . | F5 E5 D5 . C5 . G4 . | Bb4 . D5 . F5 . Bb5 . | A5 . G5 . F5 . D5 . | C#5 . E5 . A5 . . . | G5 . E5 . C#5 . A4 .'},
+ parque:{bpm:155,ch:['G M','G M','E m','E m','C M','C M','D M','D M'],
+  mel:'B4 D5 G5 . B5 . A5 G5 | A5 . G5 . D5 . . . | B4 E5 G5 . B5 . A5 G5 | F#5 . E5 . B4 . . . | C5 E5 G5 . C6 . B5 A5 | G5 . E5 . C5 . . . | D5 F#5 A5 . D6 . C6 A5 | F#5 . D5 . A5 . F#5 .'},
+ chuva:{bpm:158,ch:['F# m','F# m','D M','D M','E M','E M','C# M','C# M'],
+  mel:'F#5 . A5 . C#6 . A5 . | B5 . A5 . G#5 . F#5 . | F#5 . D5 . A5 . F#5 . | E5 . F#5 . A5 . . . | G#5 . E5 . B5 . G#5 . | A5 . B5 . C#6 . B5 . | F5 . G#5 . C#6 . . . | B5 . A5 . G#5 . F5 .'},
+ lava:{bpm:175,ch:['C m','C m','Ab M','Ab M','Bb M','Bb M','G M','G M'],
+  mel:'C5 C5 Eb5 C5 G5 . F5 Eb5 | F5 . Eb5 . D5 . C5 . | C5 C5 Eb5 C5 Ab5 . G5 F5 | G5 . F5 . Eb5 . C5 . | D5 D5 F5 D5 Bb5 . Ab5 G5 | Ab5 . G5 . F5 . D5 . | B4 . D5 . G5 . B5 . | Ab5 . G5 . F5 . D5 .'}
+};
+const TRACK_SONG={cidade:'largada',sbc:'largada',praia:'beiramar',castelo:'beiramar',neon:'neon',geek:'neon',secreta:'neon',
+  oeste:'poeira',diversao:'parque',chacara:'parque',laranjal:'parque',joinville:'chuva',cambe:'chuva',vulcao:'lava',arena:'lava'};
+const NOTE_IX={C:0,D:2,E:4,F:5,G:7,A:9,B:11};
+function noteMidi(n){const m=/^([A-G])(#|b)?(-?\d)$/.exec(n);if(!m)return null;return 12*(+m[3]+1)+NOTE_IX[m[1]]+(m[2]==='#'?1:m[2]==='b'?-1:0)}
+const mf=m=>440*Math.pow(2,(m-69)/12);
+function prepSong(s){if(s.prep)return s;const toks=s.mel.replace(/\|/g,' ').trim().split(/\s+/);
+  s.notes=toks.map((t,i)=>{if(t==='.'||t==='-')return null;let len=1;while(toks[i+len]==='.')len++;return{m:noteMidi(t),len}});
+  s.chords=s.ch.map(c=>{const [r,q]=c.split(' ');const root=noteMidi(r+'2');return [root,root+(q==='m'?3:4),root+7]});s.prep=true;return s}
+let chip={on:false,song:null,step:0,t:0,gain:null,noise:null,id:null};
+function chipOut(){if(!AC)return null;if(!chip.gain){chip.gain=AC.createGain();chip.gain.gain.value=0;chip.gain.connect(AC.destination);
+  const b=AC.createBuffer(1,AC.sampleRate*.5,AC.sampleRate),d=b.getChannelData(0);for(let i=0;i<d.length;i++)d[i]=Math.random()*2-1;chip.noise=b}return chip.gain}
+function chipTone(type,f,t,dur,vol,opt={}){const o=AC.createOscillator(),g=AC.createGain();o.type=type;o.frequency.setValueAtTime(f,t);
+  if(opt.vib&&dur>.18){const l=AC.createOscillator(),lg=AC.createGain();l.frequency.value=6;lg.gain.setValueAtTime(0,t);lg.gain.linearRampToValueAtTime(f*.012,t+Math.min(.25,dur));l.connect(lg);lg.connect(o.frequency);l.start(t);l.stop(t+dur+.05)}
+  let out=g;if(opt.lp){const fl=AC.createBiquadFilter();fl.type='lowpass';fl.frequency.value=opt.lp;g.connect(fl);out=fl}
+  g.gain.setValueAtTime(0,t);g.gain.linearRampToValueAtTime(vol,t+.005);g.gain.linearRampToValueAtTime(vol*(opt.sus??.65),t+.06);g.gain.setValueAtTime(vol*(opt.sus??.65),t+Math.max(.06,dur-.03));g.gain.linearRampToValueAtTime(0,t+dur+.02);
+  o.connect(g);out.connect(chip.gain);o.start(t);o.stop(t+dur+.05)}
+function chipNoise(t,dur,vol,type,freq){const s=AC.createBufferSource(),f=AC.createBiquadFilter(),g=AC.createGain();s.buffer=chip.noise;f.type=type;f.frequency.value=freq;
+  g.gain.setValueAtTime(vol,t);g.gain.exponentialRampToValueAtTime(.001,t+dur);s.connect(f);f.connect(g);g.connect(chip.gain);s.start(t);s.stop(t+dur+.02)}
+function chipKick(t){const o=AC.createOscillator(),g=AC.createGain();o.frequency.setValueAtTime(150,t);o.frequency.exponentialRampToValueAtTime(40,t+.12);
+  g.gain.setValueAtTime(.9,t);g.gain.exponentialRampToValueAtTime(.001,t+.16);o.connect(g);g.connect(chip.gain);o.start(t);o.stop(t+.18)}
+function chipStep(s,i,t,sd){const bar=Math.floor(i/16)%8,pass=Math.floor(i/128)%2,st=i%16,ch=s.chords[bar];
+  // bateria
+  if(st%8===0)chipKick(t);if(st===10&&bar%2===1)chipKick(t);
+  if(st%8===4)chipNoise(t,.13,.55,'bandpass',1800);
+  if(st%2===0)chipNoise(t,.03,st%4===2?.22:.12,'highpass',7000);
+  if(bar===7&&pass===1&&st>=12)chipNoise(t,.08,.35,'bandpass',1200+st*120);
+  // baixo estilo corrida: oitavas em colcheias
+  if(st%2===0){const m=ch[0]+((st/2)%2?12:0);chipTone('sawtooth',mf(m),t,sd*1.7,.32,{lp:900,sus:.5})}
+  // arpejo na segunda volta
+  if(pass===1){const ar=[ch[0]+24,ch[1]+24,ch[2]+24,ch[0]+36];chipTone('triangle',mf(ar[st%4]),t,sd*.9,.10,{sus:.4})}
+  // melodia (colcheias)
+  if(st%2===0){const n=s.notes[bar*8+st/2];if(n&&n.m!=null){const d=n.len*2*sd;chipTone('square',mf(n.m),t,d*.95,.13,{vib:true});
+    chipTone('sawtooth',mf(n.m)*1.004,t,d*.95,pass?.07:.04,{lp:3000})}}
+}
+function chipStart(id){if(!AC||!chipOut())return;const key=TRACK_SONG[id]||'largada';if(chip.on&&chip.id===key)return;
+  chip.song=prepSong(CHIP_SONGS[key]);chip.id=key;chip.on=true;chip.step=0;chip.t=AC.currentTime+.08}
+function chipStop(){chip.on=false;chip.id=null;if(chip.gain&&AC)chip.gain.gain.setTargetAtTime(0,AC.currentTime,.05)}
+function chipTick(){if(!chip.on||!AC)return;const s=chip.song,sd=60/s.bpm/4;
+  const vol=(muted||musicMuted)?0:(performance.now()<fanfareUntil?.04:(paused?.14:.42));chip.gain.gain.setTargetAtTime(vol,AC.currentTime,.08);
+  if(chip.t<AC.currentTime-.3)chip.t=AC.currentTime+.05; // aba voltou do segundo plano
+  while(chip.t<AC.currentTime+.18){chipStep(s,chip.step,chip.t,sd);chip.step++;chip.t+=sd}}
+const RACE_STATES=['countdown','race','finish'];
+function musicTick(){const inRace=RACE_STATES.includes(state);
+  if(inRace){if(!bgm.paused)try{bgm.pause()}catch(e){};if(AC)chipStart(trackId);chipTick()}
+  else{if(chip.on)chipStop();if(SONGS.length&&bgm.paused&&!muted&&!musicMuted&&AC&&performance.now()>fanfareUntil)music(true)}}
+
 $('musicBtn').onclick=()=>{musicMuted=!musicMuted;$('musicBtn').classList.toggle('off',musicMuted);padToast(musicMuted?'🎵 Música desligada (efeitos continuam)':'🎵 Música ligada');try{localStorage.setItem('fk-music-off',musicMuted?'1':'')}catch(e){}music(true)};
 let musicMuted=false;
 try{if(localStorage.getItem('fk-music-off')){musicMuted=true;$('musicBtn').classList.add('off')}}catch(e){}
-function music(on){try{bgm.muted=muted||musicMuted;bgm.volume=performance.now()<fanfareUntil?.04:(paused?.15:.45);bgm.muted=muted||musicMuted;if(on&&!muted&&!musicMuted){const pr=bgm.play();if(pr&&pr.catch)pr.catch(()=>{})}}catch(e){}}
+function music(on){if(RACE_STATES.includes(state)){try{bgm.pause()}catch(e){}return}try{bgm.muted=muted||musicMuted;bgm.volume=performance.now()<fanfareUntil?.04:(paused?.15:.45);bgm.muted=muted||musicMuted;if(on&&!muted&&!musicMuted){const pr=bgm.play();if(pr&&pr.catch)pr.catch(()=>{})}}catch(e){}}
 addEventListener('pointerdown',()=>{if(bgm.paused&&!muted&&state!=='title')music(true)});
 
 addEventListener('keydown',e=>{
